@@ -15,10 +15,11 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email string `json:"email"`
+	IsChirpyRed bool `json:"is_chirpy_red"`
 }
 
 
-func (cfg *apiConfig) handlerUserCreate(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email string `json:"email"`
 		Password string `json:"password"`
@@ -60,6 +61,7 @@ func (cfg *apiConfig) handlerUserCreate(w http.ResponseWriter, r *http.Request) 
 		CreatedAt: dbUser.CreatedAt,
 		UpdatedAt: dbUser.UpdatedAt,
 		Email: dbUser.Email,
+		IsChirpyRed: dbUser.IsChirpyRed,
 	}
 
 	respondWithJSON(w, http.StatusCreated, response{

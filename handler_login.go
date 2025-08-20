@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/JA50N14/chirpy/internal/auth"
+	"github.com/JA50N14/chirpy/internal/database"
 )
 
 
@@ -13,7 +14,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password string `json:"password"`
 		Email string `json:"email"`
-		ExpiresInSeconds *int `json:"expires_in_seconds"`
 	}
 
 	type response struct {
@@ -43,15 +43,22 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var expirationTime = time.Hour
-
-	if params.ExpiresInSeconds != nil && *params.ExpiresInSeconds > 0 && *params.ExpiresInSeconds < 3600 {
-		expirationTime = time.Second * time.Duration(*params.ExpiresInSeconds)
-	}
-
-	jwtToken, err := auth.MakeJWT(dbUser.ID, cfg.jwtSecret, expirationTime)
+	accessToken, err := auth.MakeJWT(dbUser.ID, cfg.jwtSecret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "error generating jwt token", err)
+		return
+	}
+
+	refreshToken := auth.MakeRefreshToken()
+	createRefreshTokenParams := database.CreateRefreshTokenParams {
+		Token: refreshToken,
+		UserID: dbUser.ID,
+		ExpiresAt: time.Now().UTC().Add(time.Hour * 1440),
+	}
+
+	_, err = cfg.db.CreateRefreshToken(r.Context(), createRefreshTokenParams)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error posting refresh token", err)
 		return
 	}
 
@@ -61,7 +68,9 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 			CreatedAt: dbUser.CreatedAt,
 			UpdatedAt: dbUser.UpdatedAt,
 			Email: dbUser.Email,
+			IsChirpyRed: dbUser.IsChirpyRed,
 		},
-		Token: jwtToken,
+		Token: accessToken,
+		RefreshToken: refreshToken,
 	})
 }

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"crypto/rand"
+	"encoding/hex"
 
 	"golang.org/x/crypto/bcrypt"
 	"github.com/google/uuid"
@@ -78,4 +80,21 @@ func GetBearerToken(headers http.Header) (string, error) {
 	}
 	token := strings.TrimPrefix(authHeader, "Bearer")
 	return strings.TrimSpace(token), nil
+}
+
+
+func MakeRefreshToken() string {
+	refreshToken := make([]byte, 32)
+	rand.Read(refreshToken)
+	return hex.EncodeToString(refreshToken)
+}
+
+
+func GetAPIKey(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return "", errors.New("no Authorization in header")
+	}
+	key := strings.TrimPrefix(authHeader, "ApiKey")
+	return strings.TrimSpace(key), nil
 }
